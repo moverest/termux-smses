@@ -1,6 +1,7 @@
 
 set contact_name
 set contact_number
+set new_line_sequence '&&ln&&'
 
 function print_prompt --argument-names contact_name contact_number
   if test -n $contact_name
@@ -53,8 +54,9 @@ while test $continue = true
                   echo 'Usage: /setcontact CONTACT NAME'
                 end
             case info
-              echo 'contact_number: ' $contact_number
-              echo 'contact_name: ' $contact_name
+              echo 'contact_number: '\t $contact_number
+              echo 'contact_name: '\t $contact_name
+              echo 'new_line_sequence: '\t $new_line_sequence
             case '*'
                 printf 'Command `%s` not found.\n' $cmd
         end
@@ -62,14 +64,26 @@ while test $continue = true
         set -l incmds (string match -ar '##[^#]*##' -- $msg)
 
         for rawincmd in $incmds
+            set -l print_new_lines false
             set -l incmd (string replace -r '##([^#]*)##' '$1' -- $rawincmd)
+
+            if set incmd (string replace -r '^%' '' -- $incmd)
+              set print_new_lines true
+            end
+
             set -l incmd_res (eval $incmd)
+
+            if test $print_new_lines = true
+              set incmd_res (string join $new_line_sequence -- $incmd_res)
+            end
+
             set msg (string replace $rawincmd "$incmd_res" -- $msg)
         end
 
+
         echo -n 'Sending...'
         #printf "%s\n" $msg
-        termux-sms-send -n $contact_number $msg
+        string replace -a $new_line_sequence \n -- $msg | termux-sms-send -n $contact_number
         echo ' done.'
     else
       echo 'You can\'t send a SMS. You have not set a contact number yes.'
