@@ -1,13 +1,25 @@
 
-set -l contact_name
-set -l contact_number
+set contact_name
+set contact_number
+
+function print_prompt --argument-names contact_name contact_number
+  if test -n $contact_name
+    echo -n (set_color yellow)$contact_name(set_color normal) '('(set_color green)$contact_number(set_color normal)')'
+  else if test -n $contact_number
+    echo -n $contact_number
+  else
+    echo -n 'no number set'
+  end
+
+  echo -n '> '
+end
 
 echo 'To exit type `/exit`.'
 
 set -l msg
 set -l continue true
 while test $continue = true
-    read -p 'echo -n "> "' msg
+    read -p "print_prompt '$contact_name' '$contact_number'" msg
 
     if string match -q -r '^/' -- $msg
         set -l cmd (string replace -r '^/' '' -- $msg)
@@ -34,7 +46,6 @@ while test $continue = true
                       echo Not found.
                       exit 1
                   else
-                      echo Using $temp_contact_number.
                       set contact_name $temp_contact_name
                       set contact_number $temp_contact_number
                   end
