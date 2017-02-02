@@ -35,7 +35,7 @@ while test $continue = true
                       exit 1
                   else
                       echo Using $temp_contact_number.
-                      set contact_name $contact_name
+                      set contact_name $temp_contact_name
                       set contact_number $temp_contact_number
                   end
                 else
