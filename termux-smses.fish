@@ -1,7 +1,11 @@
 
 set contact_name
 set contact_number
+set parse_emoji true
+
 set new_line_sequence '&&ln&&'
+set emoji '<3'\t'\xE2\x9D\xA4' ':3'\t'\xF0\x9F\x98\xB8'
+
 
 function print_prompt --argument-names contact_name contact_number
     if test -n $contact_name
@@ -33,6 +37,13 @@ function render_message --argument-names msg
         end
 
         set msg (string replace $rawincmd "$incmd_res" -- $msg)
+    end
+
+    if test $parse_emoji = true
+        for e in $emoji
+            set -l e (string split \t -- $e)
+            set msg (string replace -a $e[1] (printf $e[2]) -- $msg)
+        end
     end
 
     string replace -a $new_line_sequence \n -- $msg
