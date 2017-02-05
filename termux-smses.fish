@@ -41,22 +41,41 @@ while test $continue = true
             case 'setcontact*'
                 set -l args (string split -m 1 ' ' -- $cmd)
                 if set -q args[2]
-                    set -l temp_contact_name $args[2]
-                    set -l temp_contact_number (termux-contact-list | jq 'map(select(.name=="'$temp_contact_name'"))[0].number' | tr -d ' "')
-                    if test "$temp_contact_number" = null
-                        echo Not found.
-                        exit 1
+                    set -l results (termux-contact-list | jq -r 'map(select(.name|contains("'$args[2]'"))) | .[] | "\(.name)\t\(.number)"')
+
+                    if not set -q results[1]
+                        echo 'No contact found.'
                     else
-                        set contact_name $temp_contact_name
-                        set contact_number $temp_contact_number
+                        set -l choice
+                        if test (count $results) = 1
+                            set choice 1
+                        else
+                            for i in (seq (count $results))
+                                printf '%d. %s (%s)\n' $i (string split \t -- $results[$i])
+                            end
+
+                            read -p "echo '> '" choice
+                        end
+
+                        if test "$choice" -le 0
+                            or test "$choice" -gt (count $results)
+                            echo "Invalid input"
+                        else
+                            set -l contact (string split \t -- $results[$choice])
+                            set contact_name $contact[1]
+                            set contact_number (string replace -a ' ' '' -- $contact[2])
+                        end
                     end
+
+
+
                 else
                     echo 'Usage: /setcontact CONTACT NAME'
                 end
             case info
-                echo 'contact_number: '\t $contact_number
-                echo 'contact_name: '\t $contact_name
-                echo 'new_line_sequence: '\t $new_line_sequence
+                echo 'contact_number:    ' $contact_number
+                echo 'contact_name:      ' $contact_name
+                echo 'new_line_sequence: ' $new_line_sequence
             case help
                 echo '/help                      Show this message'
                 echo '/setcontact <contact name> Set contact number from address book'
@@ -86,11 +105,9 @@ while test $continue = true
             set msg (string replace $rawincmd "$incmd_res" -- $msg)
         end
 
-
-        echo -n 'Sending...'
-        #printf "%s\n" $msg
         string replace -a $new_line_sequence \n -- $msg | termux-sms-send -n $contact_number
-        echo ' done.'
+        echo 'Sent:'
+        string replace -a $new_line_sequence \n -- $msg
     else
         echo 'You can\'t send a SMS. You have not set a contact number yet.'
         echo 'Use /setnum or /setcontact to set the number.'
