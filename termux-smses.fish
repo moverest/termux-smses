@@ -15,7 +15,7 @@ function print_prompt --argument-names contact_name contact_number
   echo -n '> '
 end
 
-echo 'To exit type `/exit`.'
+echo 'Type "/help" for help.'
 
 set -l msg
 set -l continue true
@@ -57,10 +57,16 @@ while test $continue = true
               echo 'contact_number: '\t $contact_number
               echo 'contact_name: '\t $contact_name
               echo 'new_line_sequence: '\t $new_line_sequence
+            case help
+              echo '/help                      Show this message'
+              echo '/setcontact <contact name> Set contact number from address book'
+              echo '/setnumber <phone number>  Set phone number'
+              echo '/info                      Show settings'
+              echo '/exit                      Exit'
             case '*'
                 printf 'Command `%s` not found.\n' $cmd
         end
-    else if test -n $contact_number
+    else if test -n "$contact_number"
         set -l incmds (string match -ar '##[^#]*##' -- $msg)
 
         for rawincmd in $incmds
@@ -86,7 +92,7 @@ while test $continue = true
         string replace -a $new_line_sequence \n -- $msg | termux-sms-send -n $contact_number
         echo ' done.'
     else
-      echo 'You can\'t send a SMS. You have not set a contact number yes.'
+      echo 'You can\'t send a SMS. You have not set a contact number yet.'
       echo 'Use /setnum or /setcontact to set the number.'
     end
 
