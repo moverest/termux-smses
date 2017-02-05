@@ -15,6 +15,29 @@ function print_prompt --argument-names contact_name contact_number
     echo -n '> '
 end
 
+function render_message --argument-names msg
+    set -l incmds (string match -ar '##[^#]*##' -- $msg)
+
+    for rawincmd in $incmds
+        set -l print_new_lines false
+        set -l incmd (string replace -r '##([^#]*)##' '$1' -- $rawincmd)
+
+        if set incmd (string replace -r '^%' '' -- $incmd)
+            set print_new_lines true
+        end
+
+        set -l incmd_res (eval $incmd)
+
+        if test $print_new_lines = true
+            set incmd_res (string join $new_line_sequence -- $incmd_res)
+        end
+
+        set msg (string replace $rawincmd "$incmd_res" -- $msg)
+    end
+
+    string replace -a $new_line_sequence \n -- $msg
+end
+
 echo 'Type "/help" for help.'
 
 set -l msg
@@ -86,28 +109,11 @@ while test $continue = true
                 printf 'Command `%s` not found.\n' $cmd
         end
     else if test -n "$contact_number"
-        set -l incmds (string match -ar '##[^#]*##' -- $msg)
 
-        for rawincmd in $incmds
-            set -l print_new_lines false
-            set -l incmd (string replace -r '##([^#]*)##' '$1' -- $rawincmd)
-
-            if set incmd (string replace -r '^%' '' -- $incmd)
-                set print_new_lines true
-            end
-
-            set -l incmd_res (eval $incmd)
-
-            if test $print_new_lines = true
-                set incmd_res (string join $new_line_sequence -- $incmd_res)
-            end
-
-            set msg (string replace $rawincmd "$incmd_res" -- $msg)
-        end
-
-        string replace -a $new_line_sequence \n -- $msg | termux-sms-send -n $contact_number
+        set -l rendered_msg (render_message $msg)
+        printf "%s\n" $rendered_msg | termux-sms-send -n $contact_number
         echo 'Sent:'
-        string replace -a $new_line_sequence \n -- $msg
+        printf "%s\n" $rendered_msg
     else
         echo 'You can\'t send a SMS. You have not set a contact number yet.'
         echo 'Use /setnum or /setcontact to set the number.'
