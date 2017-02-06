@@ -63,8 +63,14 @@ while test $continue = true
                 set continue false
             case quit
                 set continue false
-            case last
-                termux-sms-inbox | jq -r 'map(select(.sender=="'$contact_name'"))[-1] | @text "'(set_color yellow)'At \(.received)'(set_color normal)':\n\(.body)\n"'
+            case 'last*'
+                set -l args (string split ' ' -- $cmd)
+                if set -q args[2]
+                    termux-sms-inbox -l $args[2] | jq -r 'map(select(.sender=="'$contact_name'")) | .[] | @text "'(set_color yellow)'At \(.received)'(set_color normal)':\n\(.body)\n"'
+                else
+                    termux-sms-inbox | jq -r 'map(select(.sender=="'$contact_name'"))[-1] | @text "'(set_color yellow)'At \(.received)'(set_color normal)':\n\(.body)\n"'
+                end
+
             case 'setnum*'
                 set -l args (string split ' ' -- $cmd)
                 if set -q args[2]
