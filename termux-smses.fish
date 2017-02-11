@@ -2,9 +2,19 @@
 set contact_name
 set contact_number
 set parse_emoji true
+set ssh_port 8022
+set ssh_host
 
 set new_line_sequence '&&ln&&'
 set emoji '<3'\t'\xE2\x9D\xA4' ':3'\t'\xF0\x9F\x98\xB8'
+
+function exec_cmd_on_phone
+    if test -n "$ssh_host"
+        eval ssh -p $ssh_port $ssh_host $argv
+    else
+        eval $argv
+    end
+end
 
 
 function print_prompt --argument-names contact_name contact_number
@@ -49,6 +59,21 @@ function render_message --argument-names msg
     string replace -a $new_line_sequence \n -- $msg
 end
 
+if set -q argv[1]
+    set ssh_host $argv[1]
+
+    if set -q argv[2]
+        set ssh_port $argv[2]
+    end
+
+    if set -l err (exec_cmd_on_phone true 2>&1)
+        echo "Remote phone: $ssh_host:$ssh_port"
+    else
+        echo "Failed to connect to $ssh_host:$ssh_port:" $err
+        exit
+    end
+end
+
 echo 'Type "/help" for help.'
 
 set -l msg
@@ -66,9 +91,9 @@ while test $continue = true
             case 'last*'
                 set -l args (string split ' ' -- $cmd)
                 if set -q args[2]
-                    termux-sms-inbox -l $args[2] | jq -r 'map(select(.sender=="'$contact_name'")) | .[] | @text "'(set_color yellow)'At \(.received)'(set_color normal)':\n\(.body)\n"'
+                    exec_cmd_on_phone termux-sms-inbox -l $args[2] | jq -r 'map(select(.sender=="'$contact_name'")) | .[] | @text "'(set_color yellow)'At \(.received)'(set_color normal)':\n\(.body)\n"'
                 else
-                    termux-sms-inbox | jq -r 'map(select(.sender=="'$contact_name'"))[-1] | @text "'(set_color yellow)'At \(.received)'(set_color normal)':\n\(.body)\n"'
+                    exec_cmd_on_phone termux-sms-inbox | jq -r 'map(select(.sender=="'$contact_name'"))[-1] | @text "'(set_color yellow)'At \(.received)'(set_color normal)':\n\(.body)\n"'
                 end
 
             case 'setnum*'
@@ -81,7 +106,7 @@ while test $continue = true
             case 'setcontact*'
                 set -l args (string split -m 1 ' ' -- $cmd)
                 if set -q args[2]
-                    set -l results (termux-contact-list | jq -r 'map(select(.name|contains("'$args[2]'"))) | .[] | "\(.name)\t\(.number)"')
+                    set -l results (exec_cmd_on_phone termux-contact-list | jq -r 'map(select(.name|contains("'$args[2]'"))) | .[] | "\(.name)\t\(.number)"')
 
                     if not set -q results[1]
                         echo 'No contact found.'
@@ -128,7 +153,7 @@ while test $continue = true
     else if test -n "$contact_number"
 
         set -l rendered_msg (render_message $msg)
-        printf "%s\n" $rendered_msg | termux-sms-send -n $contact_number
+        printf "%s\n" $rendered_msg | exec_cmd_on_phone termux-sms-send -n $contact_number
         echo 'Sent:'
         printf "%s\n" $rendered_msg
     else
