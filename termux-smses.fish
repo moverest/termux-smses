@@ -146,7 +146,10 @@ while test $continue = true
                 echo '/setcontact <contact name> Set contact number from address book'
                 echo '/setnumber <phone number>  Set phone number'
                 echo '/info                      Show settings'
+                echo '/ <command>                Execute shell command'
                 echo '/exit                      Exit'
+            case ' *'
+                eval $cmd
             case '*'
                 printf 'Command `%s` not found.\n' $cmd
         end
