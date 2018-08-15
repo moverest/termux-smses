@@ -146,8 +146,11 @@ while test $continue = true
                 echo '/setcontact <contact name> Set contact number from address book'
                 echo '/setnumber <phone number>  Set phone number'
                 echo '/info                      Show settings'
+                echo '/last                      Show last received messages'
                 echo '/ <command>                Execute shell command'
                 echo '/exit                      Exit'
+                echo '##shell command##          Send shell command result in message'
+                echo '##%shell command##         Send shell command result in message (with new lines)'
             case ' *'
                 eval $cmd
             case '*'
